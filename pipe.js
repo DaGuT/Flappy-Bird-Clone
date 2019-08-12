@@ -1,25 +1,33 @@
 // Daniel Shiffman
 // http://codingtra.in
 // http://patreon.com/codingtrain
-// Code for: https://youtu.be/cXgA1d_E-jY&
+// Code for: https://youtu.be/cXgA1d_E-jY
+
+// Pipe is exported (eslint flags)
+/* exported Pipe */
 
 class Pipe {
   constructor() {
-    this.spacing = random(40, height / 2);
-    this.top = random(height - this.spacing);
+    this.spacing = 125;
+    this.top = random(height / 6, 3 / 4 * height);
     this.bottom = this.top + this.spacing;
 
     this.x = width;
-    this.w = 20;
-    this.speed = 2;
+    this.w = 80;
+    this.speed = 3;
 
+    this.passed = false;
     this.highlight = false;
   }
 
   hits(bird) {
-    if (bird.y < this.top || bird.y > height - this.bottom) {
-      if (bird.x > this.x && bird.x < this.x + this.w) {
+    let halfBirdHeight = bird.height / 2;
+    let halfBirdwidth = bird.width / 2;
+    if (bird.y - halfBirdHeight < this.top || bird.y + halfBirdHeight > this.bottom) {
+      //if this.w is huge, then we need different collision model
+      if (bird.x + halfBirdwidth > this.x && bird.x - halfBirdwidth < this.x + this.w) {
         this.highlight = true;
+        this.passed = true;
         return true;
       }
     }
@@ -27,13 +35,37 @@ class Pipe {
     return false;
   }
 
-  show() {
-    fill(255);
-    if (this.highlight) {
-      fill(255, 0, 0);
+  //this function is used to calculate scores and checks if we've went through the pipes
+  pass(bird) {
+    if (bird.x > this.x && !this.passed) {
+      this.passed = true;
+      return true;
     }
-    rect(this.x, 0, this.w, this.top);
-    rect(this.x, height - this.bottom, this.w, this.bottom);
+    return false;
+  }
+
+  drawHalf() {
+    let howManyNedeed = 0;
+    let peakRatio = pipePeakSprite.height / pipePeakSprite.width;
+    let bodyRatio = pipeBodySprite.height / pipeBodySprite.width;
+    //this way we calculate, how many tubes we can fit without stretching
+    howManyNedeed = Math.round(height / (this.w * bodyRatio));
+    //this <= and start from 1 is just my HACK xD But it's working
+    for (let i = 0; i < howManyNedeed; ++i) {
+      let offset = this.w * (i * bodyRatio + peakRatio);
+      image(pipeBodySprite, -this.w / 2, offset, this.w, this.w * bodyRatio);
+    }
+    image(pipePeakSprite, -this.w / 2, 0, this.w, this.w * peakRatio);
+  }
+
+  show() {
+    push();
+    translate(this.x + this.w / 2, this.bottom);
+    this.drawHalf();
+    translate(0, -this.spacing);
+    rotate(PI);
+    this.drawHalf();
+    pop();
   }
 
   update() {
@@ -41,10 +73,6 @@ class Pipe {
   }
 
   offscreen() {
-    if (this.x < -this.w) {
-      return true;
-    } else {
-      return false;
-    }
+    return (this.x < -this.w);
   }
 }
